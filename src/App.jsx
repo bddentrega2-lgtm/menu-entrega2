@@ -1,33 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
-import logoEntrega2 from "./assets/logo-entrega2.png";
-import iconoEntrega2 from "./assets/icono-entrega2.png";
 import { supabase } from "./lib/supabase";
 
 const COMERCIO_ID = "7bc9c0b0-de94-4481-bc4b-3d9cb7ad5254";
 
 const comercioInicial = {
-  nombre: "Entrega2 Food Demo",
+  nombre: "Comercio Demo",
   descripcion: "Menú digital para recibir pedidos por WhatsApp.",
-  whatsapp: "584120000000",
+  whatsapp: "584245666025",
   direccion: "Av. Principal, Maracay, Aragua",
   tiempoEstimado: "30 - 45 min",
   minimoPedido: 5,
   abierto: true,
   portada:
-    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=1600&q=80",
 };
 
-const productosIniciales = [];
-
 function App() {
-  const [vista, setVista] = useState("cliente");
+  const rutaActual = window.location.pathname;
+const esAdmin = rutaActual === "/admin";
+const [vista] = useState(esAdmin ? "admin" : "cliente");
   const [carritoAbierto, setCarritoAbierto] = useState(false);
   const [mensajeSistema, setMensajeSistema] = useState("");
   const [cargandoDatos, setCargandoDatos] = useState(true);
 
   const [comercio, setComercio] = useState(comercioInicial);
-  const [productos, setProductos] = useState(productosIniciales);
+  const [productos, setProductos] = useState([]);
   const [carrito, setCarrito] = useState([]);
   const [categoriaActiva, setCategoriaActiva] = useState("Todos");
   const [busqueda, setBusqueda] = useState("");
@@ -66,9 +64,7 @@ function App() {
         .eq("id", COMERCIO_ID)
         .single();
 
-      if (comercioError) {
-        throw comercioError;
-      }
+      if (comercioError) throw comercioError;
 
       const { data: productosData, error: productosError } = await supabase
         .from("productos")
@@ -76,9 +72,7 @@ function App() {
         .eq("comercio_id", COMERCIO_ID)
         .order("created_at", { ascending: true });
 
-      if (productosError) {
-        throw productosError;
-      }
+      if (productosError) throw productosError;
 
       setComercio({
         nombre: comercioData.nombre,
@@ -133,6 +127,8 @@ function App() {
       return coincideCategoria && coincideBusqueda;
     });
   }, [productosActivos, categoriaActiva, busqueda]);
+
+  const productosPopulares = productosActivos.filter((producto) => producto.popular);
 
   const subtotal = carrito.reduce((total, producto) => {
     return total + producto.precio * producto.cantidad;
@@ -367,7 +363,7 @@ function App() {
       return;
     }
 
-    let mensaje = `*Nuevo pedido desde el menú digital Entrega2*%0A%0A`;
+    let mensaje = `*Nuevo pedido desde Pedi2*%0A%0A`;
     mensaje += `*Comercio:* ${comercio.nombre}%0A%0A`;
 
     mensaje += `*Datos del cliente*%0A`;
@@ -407,7 +403,7 @@ function App() {
   if (cargandoDatos) {
     return (
       <div className="pantallaCarga">
-        <img src={logoEntrega2} alt="Entrega2" />
+        <div className="brandLoading">Pedi<span>2</span></div>
         <p>Cargando menú digital...</p>
       </div>
     );
@@ -416,102 +412,135 @@ function App() {
   return (
     <div className="app">
       <nav className="topBar">
-        <div className="brandMini">
-          <div className="brandIconWrap">
-            <img src={iconoEntrega2} alt="Entrega2" className="brandIconImg" />
-          </div>
-
-          <div className="brandTextBlock">
-            <img src={logoEntrega2} alt="Entrega2" className="brandLogoImg" />
-            <span>Menú digital para aliados</span>
-          </div>
+        <div className="brandText">
+          Pedi<span>2</span>
         </div>
 
-        <div className="tabs">
-          <button
-            className={vista === "cliente" ? "tab activo" : "tab"}
-            onClick={() => setVista("cliente")}
-          >
-            Cliente
-          </button>
-
-          <button
-            className={vista === "admin" ? "tab activo" : "tab"}
-            onClick={() => setVista("admin")}
-          >
-            Admin
-          </button>
+        <div className="navLinks">
+          <a href="#inicio">Inicio</a>
+          <a href="#menu">Menú</a>
+          <a href="#destacados">Destacados</a>
         </div>
+
+        {esAdmin && (
+  <div className="tabs">
+    <a className="tab activo" href="/">
+      Ver menú
+    </a>
+  </div>
+)}
       </nav>
 
       {mensajeSistema && <div className="toast">{mensajeSistema}</div>}
 
       {vista === "cliente" ? (
         <>
-          <header
-            className="hero"
-            style={{
-              backgroundImage: `linear-gradient(180deg, rgba(0,42,102,0.18), rgba(0,42,102,0.96)), url(${comercio.portada})`,
-            }}
-          >
-            <div className="heroOverlay">
-              <div className="heroContent">
-                <img src={logoEntrega2} alt="Entrega2" className="heroLogo" />
+          <header className="heroPremium" id="inicio">
+            <div className="heroCopy">
+              <div className="statusPill">
+                <span className={comercio.abierto ? "dot abierto" : "dot cerrado"}></span>
+                {comercio.abierto ? "Abierto para pedidos" : "Cerrado ahora"}
+              </div>
 
-                <div className="estadoComercio">
-                  <span className={comercio.abierto ? "dot abierto" : "dot cerrado"}></span>
-                  {comercio.abierto ? "Abierto para pedidos" : "Cerrado ahora"}
+              <h1>
+                Tú pides, <br />
+                <span>Pedi2 lo conecta.</span>
+              </h1>
+
+              <p>
+                Elige tus productos favoritos, comparte tu ubicación y envía tu
+                pedido directo al comercio por WhatsApp.
+              </p>
+
+              <div className="heroActions">
+                <a href="#menu" className="primaryAction">
+                  Ver menú
+                </a>
+
+                <a
+                  className="secondaryAction"
+                  href={`https://wa.me/${comercio.whatsapp.replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Escríbenos
+                </a>
+              </div>
+
+              <div className="heroTrust">
+                <div>
+                  <strong>Rápido</strong>
+                  <span>Pedido en pocos pasos</span>
                 </div>
 
-                <h1>{comercio.nombre}</h1>
-                <p className="subtitle">{comercio.descripcion}</p>
-
-                <div className="heroBadges">
-                  <span>⏱️ {comercio.tiempoEstimado}</span>
-                  <span>🛵 Delivery disponible</span>
-                  <span>💵 Mínimo ${comercio.minimoPedido}</span>
+                <div>
+                  <strong>Seguro</strong>
+                  <span>Datos claros para entrega</span>
                 </div>
+
+                <div>
+                  <strong>Directo</strong>
+                  <span>Pedido al WhatsApp</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="heroVisual">
+              <div className="blueShape"></div>
+
+              <img src={comercio.portada} alt={comercio.nombre} />
+
+              <div className="floatingInfo top">
+                <strong>{comercio.tiempoEstimado}</strong>
+                <span>Tiempo estimado</span>
+              </div>
+
+              <div className="floatingInfo bottom">
+                <strong>{comercio.nombre}</strong>
+                <span>{comercio.direccion}</span>
               </div>
             </div>
           </header>
 
-          <main className="layout">
-            <section className="menu">
-              <div className="menuHeader">
+          <main className="clientArea">
+            <section className="categoryDock">
+              {categorias.map((categoria) => (
+                <button
+                  key={categoria}
+                  className={
+                    categoriaActiva === categoria
+                      ? "categoryItem active"
+                      : "categoryItem"
+                  }
+                  onClick={() => setCategoriaActiva(categoria)}
+                >
+                  <span>{categoria === "Todos" ? "▦" : "□"}</span>
+                  {categoria}
+                </button>
+              ))}
+            </section>
+
+            <section className="menuSection" id="menu">
+              <div className="sectionHeader">
                 <div>
+                  <span className="eyebrow">Menú del comercio</span>
                   <h2>Haz tu pedido</h2>
-                  <p>{comercio.direccion}</p>
+                  <p>{comercio.descripcion}</p>
                 </div>
 
-                <div className="contadorMenu">
+                <div className="counterBox">
                   <strong>{productosFiltrados.length}</strong>
                   <span>items</span>
                 </div>
               </div>
 
-              <div className="buscador">
+              <div className="searchBox">
                 <input
                   type="text"
-                  placeholder="Buscar producto, combo o bebida..."
+                  placeholder="Buscar hamburguesa, bebida, combo..."
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                 />
-              </div>
-
-              <div className="categorias">
-                {categorias.map((categoria) => (
-                  <button
-                    key={categoria}
-                    className={
-                      categoriaActiva === categoria
-                        ? "categoriaBtn activo"
-                        : "categoriaBtn"
-                    }
-                    onClick={() => setCategoriaActiva(categoria)}
-                  >
-                    {categoria}
-                  </button>
-                ))}
               </div>
 
               {productosFiltrados.length === 0 ? (
@@ -520,20 +549,27 @@ function App() {
                   <p>Prueba con otra búsqueda o categoría.</p>
                 </div>
               ) : (
-                <div className="productos">
+                <div className="productGrid">
                   {productosFiltrados.map((producto) => (
-                    <article className="card" key={producto.id}>
-                      <div className="imagenProducto">
+                    <article className="productCard" key={producto.id}>
+                      <div className="productImage">
                         <img src={producto.imagen} alt={producto.nombre} />
-                        {producto.popular && <span className="popular">Popular</span>}
+                        {producto.popular && <span>Popular</span>}
+
+                        <button
+                          className="quickAdd"
+                          onClick={() => agregarAlCarrito(producto)}
+                        >
+                          +
+                        </button>
                       </div>
 
-                      <div className="cardBody">
-                        <span className="categoria">{producto.categoria}</span>
+                      <div className="productInfo">
+                        <small>{producto.categoria}</small>
                         <h3>{producto.nombre}</h3>
                         <p>{producto.descripcion}</p>
 
-                        <div className="cardFooter">
+                        <div className="productFooter">
                           <strong>${producto.precio.toFixed(2)}</strong>
                           <button onClick={() => agregarAlCarrito(producto)}>
                             Agregar
@@ -546,6 +582,22 @@ function App() {
               )}
             </section>
 
+            {productosPopulares.length > 0 && (
+              <section className="promoBanner" id="destacados">
+                <div className="promoIcon">%</div>
+
+                <div>
+                  <h2>Productos que tus clientes aman</h2>
+                  <p>
+                    Destaca combos, promociones o productos con mayor salida
+                    para aumentar el ticket promedio.
+                  </p>
+                </div>
+
+                <a href="#menu">Ver productos</a>
+              </section>
+            )}
+
             {carritoAbierto && (
               <button
                 className="backdropMobile"
@@ -554,52 +606,49 @@ function App() {
               />
             )}
 
-            <aside className={carritoAbierto ? "panelPedido abierto" : "panelPedido"}>
+            <aside className={carritoAbierto ? "orderPanel open" : "orderPanel"}>
               <div className="handleMobile"></div>
 
               <button
-                className="cerrarPedidoMobile"
+                className="closePanel"
                 onClick={() => setCarritoAbierto(false)}
               >
                 Cerrar
               </button>
 
-              <section className="carrito">
-                <div className="carritoHeader">
+              <section className="cartBox">
+                <div className="cartHeader">
                   <div>
                     <h2>Tu pedido</h2>
                     <p>{cantidadProductos} producto(s)</p>
                   </div>
 
                   {carrito.length > 0 && (
-                    <button className="linkButton" onClick={limpiarCarrito}>
+                    <button className="textButton" onClick={limpiarCarrito}>
                       Limpiar
                     </button>
                   )}
                 </div>
 
                 {carrito.length === 0 ? (
-                  <div className="vacio">
-                    <div className="vacioIcono">🛒</div>
+                  <div className="emptyCart">
+                    <span>🛒</span>
                     <p>Aún no has agregado productos.</p>
                   </div>
                 ) : (
                   <>
-                    <ul>
+                    <ul className="cartList">
                       {carrito.map((producto) => (
                         <li key={producto.id}>
-                          <div className="infoCarrito">
-                            <span>{producto.nombre}</span>
+                          <div>
+                            <strong>{producto.nombre}</strong>
                             <small>
                               ${producto.precio.toFixed(2)} x {producto.cantidad}
                             </small>
                           </div>
 
-                          <div className="accionesCarrito">
-                            <button
-                              className="botonCantidad"
-                              onClick={() => quitarDelCarrito(producto.id)}
-                            >
+                          <div className="cartActions">
+                            <button onClick={() => quitarDelCarrito(producto.id)}>
                               -
                             </button>
 
@@ -607,15 +656,12 @@ function App() {
                               ${(producto.precio * producto.cantidad).toFixed(2)}
                             </strong>
 
-                            <button
-                              className="botonCantidad"
-                              onClick={() => agregarAlCarrito(producto)}
-                            >
+                            <button onClick={() => agregarAlCarrito(producto)}>
                               +
                             </button>
 
                             <button
-                              className="botonEliminar"
+                              className="deleteBtn"
                               onClick={() => eliminarProductoDelCarrito(producto.id)}
                             >
                               ×
@@ -625,7 +671,7 @@ function App() {
                       ))}
                     </ul>
 
-                    <div className="total">
+                    <div className="totalBox">
                       <span>Subtotal</span>
                       <strong>${subtotal.toFixed(2)}</strong>
                     </div>
@@ -633,7 +679,7 @@ function App() {
                 )}
               </section>
 
-              <section className="datosCliente">
+              <section className="formBox">
                 <h2>Datos de entrega</h2>
 
                 <label>
@@ -665,13 +711,13 @@ function App() {
                   />
                 </label>
 
-                <button className="ubicacionBtn" onClick={obtenerUbicacionActual}>
+                <button className="locationBtn" onClick={obtenerUbicacionActual}>
                   📍 Usar mi ubicación actual
                 </button>
 
                 {cliente.lat && cliente.lng && (
                   <a
-                    className="mapaLink"
+                    className="mapLink"
                     href={`https://www.google.com/maps?q=${cliente.lat},${cliente.lng}`}
                     target="_blank"
                     rel="noreferrer"
@@ -705,13 +751,13 @@ function App() {
                 </label>
 
                 <button
-                  className={pedidoValido ? "whatsapp" : "whatsapp disabled"}
+                  className={pedidoValido ? "whatsappButton" : "whatsappButton disabled"}
                   onClick={enviarPedidoPorWhatsApp}
                 >
                   Enviar pedido por WhatsApp
                 </button>
 
-                <p className="aviso">
+                <p className="formNote">
                   * El comercio confirmará disponibilidad y costo de delivery.
                 </p>
               </section>
@@ -719,28 +765,21 @@ function App() {
           </main>
 
           <button
-            className={cantidadProductos > 0 ? "floatingCart activo" : "floatingCart"}
+            className={cantidadProductos > 0 ? "floatingCart active" : "floatingCart"}
             onClick={() => setCarritoAbierto(true)}
           >
-            <span>🛒 Ver pedido</span>
+            <span>Tu pedido</span>
             <strong>
-              {cantidadProductos} • ${subtotal.toFixed(2)}
+              {cantidadProductos} productos • ${subtotal.toFixed(2)}
             </strong>
           </button>
         </>
       ) : (
-        <main className="adminLayout">
+        <main className="adminArea">
           <section className="adminHero">
             <div>
-              <div className="adminBrandBlock">
-                <div className="adminLogoBadge">
-                  <img src={iconoEntrega2} alt="Entrega2" className="adminIconImg" />
-                </div>
-
-                <img src={logoEntrega2} alt="Entrega2" className="adminBrandLogo" />
-              </div>
-
-              <p className="tag oscuro">Panel administrador</p>
+              <div className="adminBrand">Pedi<span>2</span></div>
+              <p className="adminEyebrow">Panel administrador</p>
               <h1>Configura el menú del comercio</h1>
               <p>Edita datos, productos y WhatsApp para recibir pedidos.</p>
             </div>
@@ -817,7 +856,7 @@ function App() {
                 />
               </label>
 
-              <label className="checkboxAdmin">
+              <label className="checkboxRow">
                 <input
                   type="checkbox"
                   checked={comercio.abierto}
@@ -885,13 +924,27 @@ function App() {
                 />
               </label>
 
-              <button className="fullBtn" onClick={agregarProductoAdmin}>
+              <label className="checkboxRow">
+                <input
+                  type="checkbox"
+                  checked={nuevoProducto.popular}
+                  onChange={(e) =>
+                    setNuevoProducto({
+                      ...nuevoProducto,
+                      popular: e.target.checked,
+                    })
+                  }
+                />
+                Marcar como popular
+              </label>
+
+              <button className="fullButton" onClick={agregarProductoAdmin}>
                 Agregar producto
               </button>
             </div>
           </section>
 
-          <section className="adminCard productosAdmin">
+          <section className="adminCard productsAdmin">
             <div className="adminSectionHeader">
               <div>
                 <h2>Productos cargados</h2>
@@ -899,12 +952,12 @@ function App() {
               </div>
             </div>
 
-            <div className="tablaProductos">
+            <div className="adminProductList">
               {productos.map((producto) => (
-                <div className="productoAdmin" key={producto.id}>
+                <div className="adminProduct" key={producto.id}>
                   <img src={producto.imagen} alt={producto.nombre} />
 
-                  <div className="productoAdminCampos">
+                  <div className="adminProductFields">
                     <label>
                       Nombre
                       <input
@@ -950,7 +1003,7 @@ function App() {
                       />
                     </label>
 
-                    <label className="descripcionAdmin">
+                    <label className="largeField">
                       Descripción
                       <textarea
                         value={producto.descripcion}
@@ -965,16 +1018,16 @@ function App() {
                     </label>
                   </div>
 
-                  <div className="productoAdminActions">
+                  <div className="adminProductActions">
                     <button
-                      className={producto.activo ? "estadoActivo" : "estadoInactivo"}
+                      className={producto.activo ? "activeState" : "inactiveState"}
                       onClick={() => alternarProductoActivo(producto.id)}
                     >
                       {producto.activo ? "Activo" : "Inactivo"}
                     </button>
 
                     <button
-                      className="dangerBtn"
+                      className="dangerButton"
                       onClick={() => eliminarProductoAdmin(producto.id)}
                     >
                       Eliminar
