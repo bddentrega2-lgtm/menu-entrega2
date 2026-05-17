@@ -5,6 +5,7 @@
 }
 
 :root {
+  --brand: #003aa0;
   --blue: #003aa0;
   --blue-dark: #002a66;
   --blue-bright: #0b5cff;
@@ -43,7 +44,7 @@ button {
   font-weight: 900;
   border-radius: 999px;
   padding: 12px 18px;
-  background: var(--blue-bright);
+  background: var(--brand);
   color: white;
   transition: 0.2s ease;
 }
@@ -68,8 +69,8 @@ select {
 input:focus,
 textarea:focus,
 select:focus {
-  border-color: var(--blue-bright);
-  box-shadow: 0 0 0 4px rgba(11, 92, 255, 0.1);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px rgba(0, 58, 160, 0.1);
 }
 
 textarea {
@@ -89,15 +90,16 @@ a {
   text-decoration: none;
 }
 
-/* LOADING */
+/* GENERAL */
 
 .pantallaCarga {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+  background: linear-gradient(135deg, var(--brand), var(--blue-dark));
   color: white;
   text-align: center;
+  padding: 24px;
 }
 
 .brandLoading,
@@ -106,17 +108,77 @@ a {
   font-size: 42px;
   font-weight: 900;
   letter-spacing: -2px;
-  color: var(--blue-dark);
-}
-
-.brandLoading {
-  color: white;
 }
 
 .brandLoading span,
 .brandText span,
 .adminBrand span {
-  color: var(--blue-bright);
+  color: #2f8cff;
+}
+
+.loadingLink {
+  color: white;
+  font-weight: 900;
+  text-decoration: underline;
+}
+
+.toast {
+  position: fixed;
+  top: 96px;
+  right: 22px;
+  z-index: 200;
+  max-width: 360px;
+  background: var(--blue-dark);
+  color: white;
+  padding: 14px 18px;
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* PIN */
+
+.pinScreen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(11, 92, 255, 0.2), transparent 34%),
+    linear-gradient(135deg, #f6f9ff, #eaf2ff);
+}
+
+.pinCard {
+  width: min(430px, 100%);
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 32px;
+  padding: 34px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 16px;
+  text-align: center;
+}
+
+.pinCard .adminBrand {
+  color: var(--blue-dark);
+}
+
+.pinCard h1 {
+  margin: 0;
+  color: var(--blue-dark);
+}
+
+.pinCard p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.pinCard a {
+  color: var(--brand);
+  font-weight: 900;
 }
 
 /* TOP BAR */
@@ -127,7 +189,7 @@ a {
   top: 14px;
   z-index: 100;
   margin: 14px auto 0;
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(0, 58, 160, 0.08);
   border-radius: 28px;
@@ -141,6 +203,7 @@ a {
 
 .brandText {
   font-size: 34px;
+  color: var(--blue-dark);
 }
 
 .navLinks {
@@ -162,7 +225,7 @@ a {
   bottom: -8px;
   width: 0;
   height: 3px;
-  background: var(--blue-bright);
+  background: var(--brand);
   border-radius: 99px;
   transition: 0.2s;
 }
@@ -171,41 +234,28 @@ a {
   width: 100%;
 }
 
-.tabs {
+.topActions {
   display: flex;
-  gap: 6px;
-  padding: 5px;
-  border-radius: 999px;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.ghostButton {
   background: var(--blue-soft);
-}
-
-.tab {
-  background: transparent;
   color: var(--blue-dark);
-  padding: 10px 16px;
 }
 
-.tab.activo {
-  background: var(--blue-bright);
+.cartTop {
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+}
+
+.cartTop.active {
+  background: var(--brand);
   color: white;
 }
 
-.toast {
-  position: fixed;
-  top: 96px;
-  right: 22px;
-  z-index: 200;
-  max-width: 360px;
-  background: var(--blue-dark);
-  color: white;
-  padding: 14px 18px;
-  border-radius: 18px;
-  box-shadow: var(--shadow);
-  font-size: 14px;
-  font-weight: 800;
-}
-
-/* HERO PREMIUM */
+/* HERO */
 
 .heroPremium {
   width: min(1180px, calc(100% - 36px));
@@ -228,6 +278,12 @@ a {
 .heroCopy {
   position: relative;
   z-index: 3;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(0, 58, 160, 0.08);
+  border-radius: 32px;
+  padding: 34px;
+  box-shadow: 0 22px 60px rgba(0, 42, 102, 0.12);
 }
 
 .statusPill {
@@ -259,16 +315,35 @@ a {
   background: var(--danger);
 }
 
+.commerceLogoBox {
+  margin-top: 20px;
+  width: 132px;
+  height: 72px;
+  border-radius: 22px;
+  background: white;
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  padding: 12px;
+}
+
+.commerceLogoBox img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
 .heroCopy h1 {
   margin: 24px 0 0;
   font-size: clamp(44px, 6vw, 74px);
   line-height: 0.98;
   letter-spacing: -3px;
   font-weight: 900;
+  color: #061b4e;
 }
 
 .heroCopy h1 span {
-  color: var(--blue-bright);
+  color: var(--brand);
 }
 
 .heroCopy p {
@@ -276,7 +351,7 @@ a {
   margin: 22px 0 0;
   font-size: 19px;
   line-height: 1.55;
-  color: var(--muted);
+  color: #253858;
   font-weight: 700;
 }
 
@@ -299,15 +374,20 @@ a {
 }
 
 .primaryAction {
-  background: var(--blue-bright);
+  background: var(--brand);
   color: white;
-  box-shadow: 0 14px 32px rgba(11, 92, 255, 0.24);
+  box-shadow: 0 14px 32px rgba(0, 58, 160, 0.24);
+}
+
+.primaryAction.small {
+  min-height: 44px;
+  padding: 0 18px;
 }
 
 .secondaryAction {
   background: white;
   color: var(--blue-dark);
-  border: 2px solid var(--blue-bright);
+  border: 2px solid var(--brand);
 }
 
 .heroTrust {
@@ -327,7 +407,7 @@ a {
 }
 
 .heroTrust span {
-  color: var(--muted);
+  color: #3f4f6b;
   font-size: 13px;
   font-weight: 700;
 }
@@ -346,7 +426,7 @@ a {
   width: 520px;
   height: 520px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--blue-bright), var(--blue-dark));
+  background: linear-gradient(135deg, var(--brand), var(--blue-dark));
   box-shadow: inset 0 0 80px rgba(255, 255, 255, 0.12);
 }
 
@@ -363,8 +443,8 @@ a {
 .floatingInfo {
   position: absolute;
   z-index: 4;
-  width: 220px;
-  background: rgba(255, 255, 255, 0.92);
+  width: 230px;
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(0, 58, 160, 0.1);
   border-radius: 24px;
@@ -441,9 +521,9 @@ a {
 }
 
 .categoryItem.active {
-  background: var(--blue-bright);
+  background: var(--brand);
   color: white;
-  border-color: var(--blue-bright);
+  border-color: var(--brand);
 }
 
 .menuSection,
@@ -469,7 +549,7 @@ a {
 .eyebrow,
 .adminEyebrow {
   display: inline-block;
-  color: var(--blue-bright);
+  color: var(--brand);
   font-size: 13px;
   font-weight: 900;
   text-transform: uppercase;
@@ -501,7 +581,7 @@ a {
   padding: 12px;
   text-align: center;
   background: var(--blue-soft);
-  color: var(--blue-bright);
+  color: var(--brand);
   border-radius: 18px;
 }
 
@@ -554,7 +634,7 @@ a {
   top: 14px;
   left: 14px;
   padding: 7px 10px;
-  background: var(--blue-bright);
+  background: var(--brand);
   color: white;
   border-radius: 999px;
   font-size: 12px;
@@ -578,7 +658,7 @@ a {
 
 .productInfo small {
   display: inline-block;
-  color: var(--blue-bright);
+  color: var(--brand);
   background: var(--blue-soft);
   border-radius: 999px;
   padding: 6px 10px;
@@ -609,7 +689,7 @@ a {
 }
 
 .productFooter strong {
-  color: var(--blue-bright);
+  color: var(--brand);
   font-size: 22px;
   font-weight: 900;
 }
@@ -639,7 +719,7 @@ a {
   height: 82px;
   border-radius: 50%;
   background: white;
-  color: var(--blue-bright);
+  color: var(--brand);
   display: grid;
   place-items: center;
   font-size: 32px;
@@ -660,7 +740,7 @@ a {
 
 .promoBanner a {
   background: white;
-  color: var(--blue-bright);
+  color: var(--brand);
   border-radius: 18px;
   padding: 16px 22px;
   font-weight: 900;
@@ -690,7 +770,7 @@ a {
 
 .textButton {
   background: transparent;
-  color: var(--blue-bright);
+  color: var(--brand);
   padding: 0;
 }
 
@@ -777,11 +857,17 @@ a {
   display: block;
   text-align: center;
   background: var(--blue-soft);
-  color: var(--blue-bright);
+  color: var(--brand);
   font-weight: 900;
   text-decoration: none;
   border-radius: 16px;
   padding: 12px;
+}
+
+.smallMap {
+  width: fit-content;
+  padding: 10px 14px;
+  margin: 10px 0;
 }
 
 .whatsappButton {
@@ -831,11 +917,41 @@ a {
 
 .adminBrand {
   font-size: 36px;
+  color: var(--blue-dark);
 }
 
 .adminActions {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.adminStats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.adminStats div {
+  background: white;
+  border: 1px solid rgba(0, 58, 160, 0.08);
+  border-radius: 24px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+
+.adminStats strong {
+  display: block;
+  color: var(--blue-dark);
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.adminStats span {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-weight: 800;
 }
 
 .adminGrid {
@@ -867,20 +983,23 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 18px;
 }
 
-.productsAdmin {
+.productsAdmin,
+.pedidosAdmin {
   gap: 22px;
 }
 
-.adminProductList {
+.adminProductList,
+.pedidosList {
   display: grid;
   gap: 18px;
 }
 
 .adminProduct {
   display: grid;
-  grid-template-columns: 120px minmax(0, 1fr) 130px;
+  grid-template-columns: 120px minmax(0, 1fr) 140px;
   gap: 18px;
   border: 1px solid var(--line);
   border-radius: 24px;
@@ -921,9 +1040,80 @@ a {
   color: #9a5b00;
 }
 
+.popularState {
+  background: var(--blue-soft);
+  color: var(--brand);
+}
+
+.secondaryState {
+  background: #eef2f7;
+  color: var(--text);
+}
+
 .dangerButton {
   background: #fff1f1;
   color: var(--danger);
+}
+
+/* PEDIDOS */
+
+.pedidoCard {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 18px;
+  background: #fbfdff;
+}
+
+.pedidoTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.pedidoTop div {
+  display: grid;
+  gap: 4px;
+}
+
+.pedidoTop strong {
+  color: var(--blue-dark);
+  font-weight: 900;
+}
+
+.pedidoTop span,
+.pedidoCard p,
+.pedidoBottom span {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.pedidoTop select {
+  max-width: 180px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.pedidoCard ul {
+  margin: 14px 0;
+  padding-left: 20px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.pedidoBottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.pedidoBottom strong {
+  color: var(--brand);
+  font-size: 20px;
 }
 
 .sinResultados {
@@ -961,6 +1151,7 @@ a {
     position: static;
   }
 
+  .adminStats,
   .adminGrid {
     grid-template-columns: 1fr;
   }
@@ -976,7 +1167,7 @@ a {
   }
 }
 
-/* MOBILE APP */
+/* MOBILE */
 
 @media (max-width: 760px) {
   body {
@@ -995,19 +1186,15 @@ a {
     font-size: 30px;
   }
 
-  .tabs {
-    transform: scale(0.9);
-    transform-origin: right;
-  }
-
-  .tab {
-    padding: 9px 12px;
+  .topActions button,
+  .topActions a {
     font-size: 12px;
+    padding: 9px 12px;
   }
 
   .heroPremium {
     width: 100%;
-    min-height: 620px;
+    min-height: 650px;
     margin-top: -80px;
     border-radius: 0 0 34px 34px;
     grid-template-columns: 1fr;
@@ -1016,8 +1203,18 @@ a {
     box-shadow: none;
   }
 
+  .heroCopy {
+    padding: 24px;
+    border-radius: 26px;
+  }
+
+  .commerceLogoBox {
+    width: 116px;
+    height: 64px;
+  }
+
   .heroCopy h1 {
-    font-size: 48px;
+    font-size: 42px;
     letter-spacing: -2px;
   }
 
@@ -1274,7 +1471,7 @@ a {
     align-items: center;
     justify-content: space-between;
     gap: 14px;
-    background: linear-gradient(135deg, var(--blue-bright), var(--blue-dark));
+    background: linear-gradient(135deg, var(--brand), var(--blue-dark));
     color: white;
     box-shadow: 0 18px 42px rgba(0, 42, 102, 0.28);
     padding: 15px 18px;
@@ -1302,6 +1499,10 @@ a {
     align-items: flex-start;
   }
 
+  .adminStats {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .adminGrid {
     grid-template-columns: 1fr;
   }
@@ -1309,6 +1510,15 @@ a {
   .adminCard {
     border-radius: 24px;
     padding: 18px;
+  }
+
+  .adminSectionHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .adminSectionHeader button {
+    width: 100%;
   }
 
   .adminProduct {
@@ -1323,51 +1533,16 @@ a {
   .adminProductFields {
     grid-template-columns: 1fr;
   }
-}/* AJUSTE PREMIUM HERO - MEJOR CONTRASTE */
 
-.heroCopy {
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(0, 58, 160, 0.08);
-  border-radius: 32px;
-  padding: 34px;
-  box-shadow: 0 22px 60px rgba(0, 42, 102, 0.12);
-}
-
-.heroCopy h1 {
-  color: #061b4e !important;
-  text-shadow: none;
-}
-
-.heroCopy h1 span {
-  color: #0057ff !important;
-}
-
-.heroCopy p {
-  color: #253858 !important;
-}
-
-.statusPill {
-  background: #ffffff;
-  color: #002a66;
-}
-
-.heroTrust strong {
-  color: #002a66 !important;
-}
-
-.heroTrust span {
-  color: #3f4f6b !important;
-}
-
-@media (max-width: 760px) {
-  .heroCopy {
-    padding: 24px;
-    border-radius: 26px;
-    background: rgba(255, 255, 255, 0.9);
+  .pedidoTop {
+    flex-direction: column;
   }
 
-  .heroCopy h1 {
-    font-size: 42px;
+  .pedidoTop select {
+    max-width: 100%;
+  }
+
+  .pedidoBottom {
+    flex-direction: column;
   }
 }

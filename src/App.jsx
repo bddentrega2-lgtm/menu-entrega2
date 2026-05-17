@@ -2,33 +2,46 @@ import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import { supabase } from "./lib/supabase";
 
-const COMERCIO_ID = "7bc9c0b0-de94-4481-bc4b-3d9cb7ad5254";
+const ruta = window.location.pathname.split("/").filter(Boolean);
+const esAdmin = ruta[0] === "admin";
+const slugComercio = esAdmin ? ruta[1] || "demo" : ruta[0] || "demo";
 
 const comercioInicial = {
-  nombre: "Comercio Demo",
+  nombre: "Pedi2 Demo",
   descripcion: "Menú digital para recibir pedidos por WhatsApp.",
-  whatsapp: "584245666025",
-  direccion: "Av. Principal, Maracay, Aragua",
+  whatsapp: "584120000000",
+  direccion: "Maracay, Aragua",
   tiempoEstimado: "30 - 45 min",
   minimoPedido: 5,
   abierto: true,
   portada:
     "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=1600&q=80",
+  logoUrl: "",
+  colorPrimario: "#003AA0",
+  adminPin: "1234",
 };
 
 function App() {
-  const rutaActual = window.location.pathname;
-const esAdmin = rutaActual === "/admin";
-const [vista] = useState(esAdmin ? "admin" : "cliente");
-  const [carritoAbierto, setCarritoAbierto] = useState(false);
-  const [mensajeSistema, setMensajeSistema] = useState("");
+  const [vista] = useState(esAdmin ? "admin" : "cliente");
+  const [comercioId, setComercioId] = useState(null);
+
   const [cargandoDatos, setCargandoDatos] = useState(true);
+  const [errorCarga, setErrorCarga] = useState("");
+  const [mensajeSistema, setMensajeSistema] = useState("");
 
   const [comercio, setComercio] = useState(comercioInicial);
   const [productos, setProductos] = useState([]);
+  const [pedidos, setPedidos] = useState([]);
+
   const [carrito, setCarrito] = useState([]);
+  const [carritoAbierto, setCarritoAbierto] = useState(false);
   const [categoriaActiva, setCategoriaActiva] = useState("Todos");
   const [busqueda, setBusqueda] = useState("");
+
+  const [pinIngresado, setPinIngresado] = useState("");
+  const [adminAutorizado, setAdminAutorizado] = useState(() => {
+    return sessionStorage.getItem(`pedi2_admin_${slugComercio}`) === "ok";
+  });
 
   const [cliente, setCliente] = useState({
     nombre: "",
@@ -51,42 +64,55 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
   });
 
   useEffect(() => {
-    cargarDatosDesdeSupabase();
+    cargarDatosIniciales();
   }, []);
 
-  async function cargarDatosDesdeSupabase() {
+  async function cargarDatosIniciales() {
     try {
       setCargandoDatos(true);
+      setErrorCarga("");
 
       const { data: comercioData, error: comercioError } = await supabase
         .from("comercios")
         .select("*")
-        .eq("id", COMERCIO_ID)
+        .eq("slug", slugComercio)
         .single();
 
-      if (comercioError) throw comercioError;
+      if (comercioError || !comercioData) {
+        throw comercioError || new Error("Comercio no encontrado");
+      }
+
+      setComercioId(comercioData.id);
+
+      const comercioMapeado = {
+        nombre: comercioData.nombre || comercioInicial.nombre,
+        descripcion: comercioData.descripcion || comercioInicial.descripcion,
+        whatsapp: comercioData.whatsapp || comercioInicial.whatsapp,
+        direccion: comercioData.direccion || comercioInicial.direccion,
+        tiempoEstimado:
+          comercioData.tiempo_estimado || comercioInicial.tiempoEstimado,
+        minimoPedido: Number(comercioData.minimo_pedido || 0),
+        abierto: comercioData.abierto,
+        portada: comercioData.portada || comercioInicial.portada,
+        logoUrl: comercioData.logo_url || "",
+        colorPrimario: comercioData.color_primario || "#003AA0",
+        adminPin: comercioData.admin_pin || "1234",
+      };
+
+      setComercio(comercioMapeado);
 
       const { data: productosData, error: productosError } = await supabase
         .from("productos")
         .select("*")
-        .eq("comercio_id", COMERCIO_ID)
+        .eq("comercio_id", comercioData.id)
         .order("created_at", { ascending: true });
 
-      if (productosError) throw productosError;
-
-      setComercio({
-        nombre: comercioData.nombre,
-        descripcion: comercioData.descripcion,
-        whatsapp: comercioData.whatsapp,
-        direccion: comercioData.direccion,
-        tiempoEstimado: comercioData.tiempo_estimado,
-        minimoPedido: Number(comercioData.minimo_pedido),
-        abierto: comercioData.abierto,
-        portada: comercioData.portada,
-      });
+      if (productosError) {
+        throw productosError;
+      }
 
       setProductos(
-        productosData.map((producto) => ({
+        (productosData || []).map((producto) => ({
           id: producto.id,
           nombre: producto.nombre,
           descripcion: producto.descripcion,
@@ -97,12 +123,34 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
           popular: producto.popular,
         }))
       );
+
+      if (esAdmin) {
+        await cargarPedidos(comercioData.id);
+      }
     } catch (error) {
       console.error(error);
-      setMensajeSistema("No pudimos cargar datos desde Supabase.");
+      setErrorCarga("No pudimos cargar este comercio.");
     } finally {
       setCargandoDatos(false);
     }
+  }
+
+  async function cargarPedidos(idComercio = comercioId) {
+    if (!idComercio) return;
+
+    const { data, error } = await supabase
+      .from("pedidos")
+      .select("*")
+      .eq("comercio_id", idComercio)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      setMensajeSistema("No pudimos cargar los pedidos.");
+      return;
+    }
+
+    setPedidos(data || []);
   }
 
   const productosActivos = productos.filter((producto) => producto.activo);
@@ -114,10 +162,10 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
 
   const productosFiltrados = useMemo(() => {
     return productosActivos.filter((producto) => {
+      const texto = busqueda.toLowerCase().trim();
+
       const coincideCategoria =
         categoriaActiva === "Todos" || producto.categoria === categoriaActiva;
-
-      const texto = busqueda.toLowerCase().trim();
 
       const coincideBusqueda =
         producto.nombre.toLowerCase().includes(texto) ||
@@ -127,8 +175,6 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
       return coincideCategoria && coincideBusqueda;
     });
   }, [productosActivos, categoriaActiva, busqueda]);
-
-  const productosPopulares = productosActivos.filter((producto) => producto.popular);
 
   const subtotal = carrito.reduce((total, producto) => {
     return total + producto.precio * producto.cantidad;
@@ -144,14 +190,14 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
     cliente.telefono.trim() !== "" &&
     cliente.direccion.trim() !== "";
 
-  const actualizarCliente = (campo, valor) => {
+  function actualizarCliente(campo, valor) {
     setCliente({
       ...cliente,
       [campo]: valor,
     });
-  };
+  }
 
-  const agregarAlCarrito = (producto) => {
+  function agregarAlCarrito(producto) {
     const existe = carrito.find((item) => item.id === producto.id);
 
     if (existe) {
@@ -167,9 +213,9 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
     }
 
     setCarritoAbierto(true);
-  };
+  }
 
-  const quitarDelCarrito = (productoId) => {
+  function quitarDelCarrito(productoId) {
     const existe = carrito.find((item) => item.id === productoId);
 
     if (!existe) return;
@@ -185,18 +231,18 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
         )
       );
     }
-  };
+  }
 
-  const eliminarProductoDelCarrito = (productoId) => {
+  function eliminarProductoDelCarrito(productoId) {
     setCarrito(carrito.filter((item) => item.id !== productoId));
-  };
+  }
 
-  const limpiarCarrito = () => {
+  function limpiarCarrito() {
     setCarrito([]);
     setCarritoAbierto(false);
-  };
+  }
 
-  const obtenerUbicacionActual = () => {
+  function obtenerUbicacionActual() {
     setMensajeSistema("");
 
     if (!navigator.geolocation) {
@@ -216,13 +262,15 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
       },
       () => {
         setMensajeSistema(
-          "No pudimos obtener la ubicación. Puedes escribir tu dirección manualmente."
+          "No pudimos obtener la ubicación. Puedes escribir la dirección manualmente."
         );
       }
     );
-  };
+  }
 
-  const actualizarComercio = async (campo, valor) => {
+  async function actualizarComercio(campo, valor) {
+    if (!comercioId) return;
+
     const comercioActualizado = {
       ...comercio,
       [campo]: valor,
@@ -230,29 +278,32 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
 
     setComercio(comercioActualizado);
 
-    const campoSupabase =
-      campo === "tiempoEstimado"
-        ? "tiempo_estimado"
-        : campo === "minimoPedido"
-        ? "minimo_pedido"
-        : campo;
+    const mapaCampos = {
+      tiempoEstimado: "tiempo_estimado",
+      minimoPedido: "minimo_pedido",
+      logoUrl: "logo_url",
+      colorPrimario: "color_primario",
+      adminPin: "admin_pin",
+    };
+
+    const campoSupabase = mapaCampos[campo] || campo;
 
     const { error } = await supabase
       .from("comercios")
       .update({
         [campoSupabase]: valor,
       })
-      .eq("id", COMERCIO_ID);
+      .eq("id", comercioId);
 
     if (error) {
       console.error(error);
       setMensajeSistema("No se pudo guardar el comercio.");
     } else {
-      setMensajeSistema("Comercio actualizado en la nube.");
+      setMensajeSistema("Cambios del comercio guardados.");
     }
-  };
+  }
 
-  const agregarProductoAdmin = async () => {
+  async function agregarProductoAdmin() {
     if (
       nuevoProducto.nombre.trim() === "" ||
       nuevoProducto.precio === "" ||
@@ -263,7 +314,7 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
     }
 
     const productoParaGuardar = {
-      comercio_id: COMERCIO_ID,
+      comercio_id: comercioId,
       nombre: nuevoProducto.nombre,
       descripcion: nuevoProducto.descripcion,
       precio: Number(nuevoProducto.precio),
@@ -283,7 +334,6 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
       return;
     }
 
-    setMensajeSistema("Producto agregado en la nube.");
     setNuevoProducto({
       nombre: "",
       descripcion: "",
@@ -294,10 +344,11 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
       popular: false,
     });
 
-    cargarDatosDesdeSupabase();
-  };
+    setMensajeSistema("Producto agregado correctamente.");
+    await cargarDatosIniciales();
+  }
 
-  const actualizarProducto = async (id, campo, valor) => {
+  async function actualizarProducto(id, campo, valor) {
     const productosActualizados = productos.map((producto) =>
       producto.id === id
         ? {
@@ -320,20 +371,26 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
       console.error(error);
       setMensajeSistema("No se pudo actualizar el producto.");
     } else {
-      setMensajeSistema("Producto actualizado en la nube.");
+      setMensajeSistema("Producto actualizado.");
     }
-  };
+  }
 
-  const alternarProductoActivo = async (id) => {
+  async function alternarProductoActivo(id) {
     const producto = productos.find((item) => item.id === id);
     if (!producto) return;
 
     await actualizarProducto(id, "activo", !producto.activo);
-  };
+  }
 
-  const eliminarProductoAdmin = async (id) => {
+  async function alternarProductoPopular(id) {
+    const producto = productos.find((item) => item.id === id);
+    if (!producto) return;
+
+    await actualizarProducto(id, "popular", !producto.popular);
+  }
+
+  async function eliminarProductoAdmin(id) {
     const confirmar = confirm("¿Seguro que quieres eliminar este producto?");
-
     if (!confirmar) return;
 
     const { error } = await supabase.from("productos").delete().eq("id", id);
@@ -345,21 +402,59 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
     }
 
     setMensajeSistema("Producto eliminado.");
-    cargarDatosDesdeSupabase();
-  };
+    await cargarDatosIniciales();
+  }
 
-  const copiarLinkMenu = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setMensajeSistema("Link del menú copiado.");
-    } catch {
-      setMensajeSistema("No se pudo copiar. Cópialo desde el navegador.");
+  async function actualizarEstadoPedido(idPedido, nuevoEstado) {
+    const { error } = await supabase
+      .from("pedidos")
+      .update({
+        estado: nuevoEstado,
+      })
+      .eq("id", idPedido);
+
+    if (error) {
+      console.error(error);
+      setMensajeSistema("No se pudo actualizar el pedido.");
+      return;
     }
-  };
 
-  const enviarPedidoPorWhatsApp = () => {
+    setMensajeSistema("Estado del pedido actualizado.");
+    await cargarPedidos();
+  }
+
+  async function enviarPedidoPorWhatsApp() {
     if (!pedidoValido) {
       alert("Completa nombre, teléfono, dirección y agrega al menos un producto.");
+      return;
+    }
+
+    const pedidoParaGuardar = {
+      comercio_id: comercioId,
+      cliente_nombre: cliente.nombre,
+      cliente_telefono: cliente.telefono,
+      direccion_entrega: cliente.direccion,
+      lat: cliente.lat || null,
+      lng: cliente.lng || null,
+      metodo_pago: cliente.metodoPago,
+      notas: cliente.notas,
+      productos: carrito.map((producto) => ({
+        id: producto.id,
+        nombre: producto.nombre,
+        precio: producto.precio,
+        cantidad: producto.cantidad,
+        total: producto.precio * producto.cantidad,
+      })),
+      subtotal,
+      estado: "pendiente",
+      canal: "pedi2",
+    };
+
+    const { error } = await supabase.from("pedidos").insert(pedidoParaGuardar);
+
+    if (error) {
+      console.error(error);
+      alert("No se pudo guardar el pedido. Intenta nuevamente.");
       return;
     }
 
@@ -398,37 +493,135 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
     const url = `https://wa.me/${telefonoLimpio}?text=${mensaje}`;
 
     window.open(url, "_blank");
-  };
+    setMensajeSistema("Pedido guardado y enviado a WhatsApp.");
+  }
+
+  function copiarLinkMenu() {
+    navigator.clipboard.writeText(`${window.location.origin}/${slugComercio}`);
+    setMensajeSistema("Link del menú copiado.");
+  }
+
+  function cerrarSesionAdmin() {
+    sessionStorage.removeItem(`pedi2_admin_${slugComercio}`);
+    setAdminAutorizado(false);
+    setPinIngresado("");
+  }
 
   if (cargandoDatos) {
     return (
       <div className="pantallaCarga">
-        <div className="brandLoading">Pedi<span>2</span></div>
+        <div className="brandLoading">
+          Pedi<span>2</span>
+        </div>
         <p>Cargando menú digital...</p>
       </div>
     );
   }
 
-  return (
-    <div className="app">
-      <nav className="topBar">
-        <div className="brandText">
+  if (errorCarga) {
+    return (
+      <div className="pantallaCarga">
+        <div className="brandLoading">
           Pedi<span>2</span>
         </div>
+        <p>{errorCarga}</p>
+        <a className="loadingLink" href="/demo">
+          Volver al demo
+        </a>
+      </div>
+    );
+  }
 
-        <div className="navLinks">
-          <a href="#inicio">Inicio</a>
-          <a href="#menu">Menú</a>
-          <a href="#destacados">Destacados</a>
+  if (esAdmin && comercio.adminPin && !adminAutorizado) {
+    return (
+      <div className="pinScreen" style={{ "--brand": comercio.colorPrimario }}>
+        <div className="pinCard">
+          <div className="adminBrand">
+            Pedi<span>2</span>
+          </div>
+
+          <h1>Acceso administrador</h1>
+          <p>Ingresa el PIN del comercio para continuar.</p>
+
+          <input
+            type="password"
+            placeholder="PIN de acceso"
+            value={pinIngresado}
+            onChange={(e) => setPinIngresado(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                if (pinIngresado.trim() === String(comercio.adminPin).trim()) {
+                  sessionStorage.setItem(`pedi2_admin_${slugComercio}`, "ok");
+                  setAdminAutorizado(true);
+                } else {
+                  alert("PIN incorrecto");
+                }
+              }
+            }}
+          />
+
+          <button
+            onClick={() => {
+              if (pinIngresado.trim() === String(comercio.adminPin).trim()) {
+                sessionStorage.setItem(`pedi2_admin_${slugComercio}`, "ok");
+                setAdminAutorizado(true);
+              } else {
+                alert("PIN incorrecto");
+              }
+            }}
+          >
+            Entrar al panel
+          </button>
+
+          <a href={`/${slugComercio}`}>Volver al menú</a>
         </div>
+      </div>
+    );
+  }
 
-        {esAdmin && (
-  <div className="tabs">
-    <a className="tab activo" href="/">
-      Ver menú
-    </a>
-  </div>
-)}
+  return (
+    <div
+      className="app"
+      style={{
+        "--brand": comercio.colorPrimario || "#003AA0",
+      }}
+    >
+      <nav className="topBar">
+        <a className="brandText" href={`/${slugComercio}`}>
+          Pedi<span>2</span>
+        </a>
+
+        {vista === "cliente" ? (
+          <div className="navLinks">
+            <a href="#inicio">Inicio</a>
+            <a href="#menu">Menú</a>
+            <a href="#destacados">Destacados</a>
+          </div>
+        ) : (
+          <div className="navLinks">
+            <a href={`/${slugComercio}`}>Ver menú</a>
+            <a href="#pedidos">Pedidos</a>
+            <a href="#productos">Productos</a>
+          </div>
+        )}
+
+        <div className="topActions">
+          {vista === "admin" ? (
+            <>
+              <button onClick={copiarLinkMenu}>Copiar link</button>
+              <button className="ghostButton" onClick={cerrarSesionAdmin}>
+                Salir
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setCarritoAbierto(true)}
+              className={cantidadProductos > 0 ? "cartTop active" : "cartTop"}
+            >
+              🛒 {cantidadProductos}
+            </button>
+          )}
+        </div>
       </nav>
 
       {mensajeSistema && <div className="toast">{mensajeSistema}</div>}
@@ -438,13 +631,19 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
           <header className="heroPremium" id="inicio">
             <div className="heroCopy">
               <div className="statusPill">
-                <span className={comercio.abierto ? "dot abierto" : "dot cerrado"}></span>
+                <span className={comercio.abierto ? "dot abierto" : "dot cerrado"} />
                 {comercio.abierto ? "Abierto para pedidos" : "Cerrado ahora"}
               </div>
 
+              {comercio.logoUrl ? (
+                <div className="commerceLogoBox">
+                  <img src={comercio.logoUrl} alt={comercio.nombre} />
+                </div>
+              ) : null}
+
               <h1>
-                Tú pides, <br />
-                <span>Pedi2 lo conecta.</span>
+                Tu pedido, <br />
+                <span>listo en minutos.</span>
               </h1>
 
               <p>
@@ -474,8 +673,8 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
                 </div>
 
                 <div>
-                  <strong>Seguro</strong>
-                  <span>Datos claros para entrega</span>
+                  <strong>Claro</strong>
+                  <span>Datos completos de entrega</span>
                 </div>
 
                 <div>
@@ -486,8 +685,7 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
             </div>
 
             <div className="heroVisual">
-              <div className="blueShape"></div>
-
+              <div className="blueShape" />
               <img src={comercio.portada} alt={comercio.nombre} />
 
               <div className="floatingInfo top">
@@ -514,7 +712,7 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
                   }
                   onClick={() => setCategoriaActiva(categoria)}
                 >
-                  <span>{categoria === "Todos" ? "▦" : "□"}</span>
+                  <span>{categoria === "Todos" ? "▦" : "○"}</span>
                   {categoria}
                 </button>
               ))}
@@ -524,7 +722,7 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
               <div className="sectionHeader">
                 <div>
                   <span className="eyebrow">Menú del comercio</span>
-                  <h2>Haz tu pedido</h2>
+                  <h2>{comercio.nombre}</h2>
                   <p>{comercio.descripcion}</p>
                 </div>
 
@@ -537,7 +735,7 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
               <div className="searchBox">
                 <input
                   type="text"
-                  placeholder="Buscar hamburguesa, bebida, combo..."
+                  placeholder="Buscar producto, combo o bebida..."
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                 />
@@ -582,21 +780,19 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
               )}
             </section>
 
-            {productosPopulares.length > 0 && (
-              <section className="promoBanner" id="destacados">
-                <div className="promoIcon">%</div>
+            <section className="promoBanner" id="destacados">
+              <div className="promoIcon">%</div>
 
-                <div>
-                  <h2>Productos que tus clientes aman</h2>
-                  <p>
-                    Destaca combos, promociones o productos con mayor salida
-                    para aumentar el ticket promedio.
-                  </p>
-                </div>
+              <div>
+                <h2>Vende más por WhatsApp</h2>
+                <p>
+                  Un menú simple, visual y ordenado ayuda a que tus clientes
+                  pidan más rápido y con menos errores.
+                </p>
+              </div>
 
-                <a href="#menu">Ver productos</a>
-              </section>
-            )}
+              <a href="#menu">Ver productos</a>
+            </section>
 
             {carritoAbierto && (
               <button
@@ -607,7 +803,7 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
             )}
 
             <aside className={carritoAbierto ? "orderPanel open" : "orderPanel"}>
-              <div className="handleMobile"></div>
+              <div className="handleMobile" />
 
               <button
                 className="closePanel"
@@ -662,7 +858,9 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
 
                             <button
                               className="deleteBtn"
-                              onClick={() => eliminarProductoDelCarrito(producto.id)}
+                              onClick={() =>
+                                eliminarProductoDelCarrito(producto.id)
+                              }
                             >
                               ×
                             </button>
@@ -751,7 +949,9 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
                 </label>
 
                 <button
-                  className={pedidoValido ? "whatsappButton" : "whatsappButton disabled"}
+                  className={
+                    pedidoValido ? "whatsappButton" : "whatsappButton disabled"
+                  }
                   onClick={enviarPedidoPorWhatsApp}
                 >
                   Enviar pedido por WhatsApp
@@ -778,14 +978,45 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
         <main className="adminArea">
           <section className="adminHero">
             <div>
-              <div className="adminBrand">Pedi<span>2</span></div>
+              <div className="adminBrand">
+                Pedi<span>2</span>
+              </div>
+
               <p className="adminEyebrow">Panel administrador</p>
-              <h1>Configura el menú del comercio</h1>
-              <p>Edita datos, productos y WhatsApp para recibir pedidos.</p>
+              <h1>{comercio.nombre}</h1>
+              <p>
+                Gestiona productos, datos del comercio, pedidos recibidos y
+                personalización visual.
+              </p>
             </div>
 
             <div className="adminActions">
+              <a className="primaryAction small" href={`/${slugComercio}`}>
+                Ver menú
+              </a>
               <button onClick={copiarLinkMenu}>Copiar link</button>
+            </div>
+          </section>
+
+          <section className="adminStats">
+            <div>
+              <strong>{productos.length}</strong>
+              <span>Productos</span>
+            </div>
+
+            <div>
+              <strong>{pedidos.length}</strong>
+              <span>Pedidos</span>
+            </div>
+
+            <div>
+              <strong>${pedidos.reduce((acc, pedido) => acc + Number(pedido.subtotal || 0), 0).toFixed(2)}</strong>
+              <span>Vendido registrado</span>
+            </div>
+
+            <div>
+              <strong>{comercio.abierto ? "Abierto" : "Cerrado"}</strong>
+              <span>Estado</span>
             </div>
           </section>
 
@@ -849,10 +1080,38 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
               </label>
 
               <label>
-                Imagen de portada
+                Imagen de portada URL
                 <input
                   value={comercio.portada}
                   onChange={(e) => actualizarComercio("portada", e.target.value)}
+                />
+              </label>
+
+              <label>
+                Logo URL
+                <input
+                  value={comercio.logoUrl}
+                  placeholder="https://..."
+                  onChange={(e) => actualizarComercio("logoUrl", e.target.value)}
+                />
+              </label>
+
+              <label>
+                Color principal
+                <input
+                  type="color"
+                  value={comercio.colorPrimario}
+                  onChange={(e) =>
+                    actualizarComercio("colorPrimario", e.target.value)
+                  }
+                />
+              </label>
+
+              <label>
+                PIN administrador
+                <input
+                  value={comercio.adminPin}
+                  onChange={(e) => actualizarComercio("adminPin", e.target.value)}
                 />
               </label>
 
@@ -909,7 +1168,10 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
                   placeholder="Ej: Hamburguesas"
                   value={nuevoProducto.categoria}
                   onChange={(e) =>
-                    setNuevoProducto({ ...nuevoProducto, categoria: e.target.value })
+                    setNuevoProducto({
+                      ...nuevoProducto,
+                      categoria: e.target.value,
+                    })
                   }
                 />
               </label>
@@ -919,7 +1181,10 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
                 <input
                   value={nuevoProducto.imagen}
                   onChange={(e) =>
-                    setNuevoProducto({ ...nuevoProducto, imagen: e.target.value })
+                    setNuevoProducto({
+                      ...nuevoProducto,
+                      imagen: e.target.value,
+                    })
                   }
                 />
               </label>
@@ -944,7 +1209,81 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
             </div>
           </section>
 
-          <section className="adminCard productsAdmin">
+          <section className="adminCard pedidosAdmin" id="pedidos">
+            <div className="adminSectionHeader">
+              <div>
+                <h2>Pedidos recibidos</h2>
+                <p>{pedidos.length} pedido(s)</p>
+              </div>
+
+              <button onClick={() => cargarPedidos(comercioId)}>
+                Actualizar pedidos
+              </button>
+            </div>
+
+            {pedidos.length === 0 ? (
+              <div className="sinResultados">
+                <h3>No hay pedidos todavía</h3>
+                <p>Cuando un cliente envíe un pedido, aparecerá aquí.</p>
+              </div>
+            ) : (
+              <div className="pedidosList">
+                {pedidos.map((pedido) => (
+                  <div className="pedidoCard" key={pedido.id}>
+                    <div className="pedidoTop">
+                      <div>
+                        <strong>{pedido.cliente_nombre}</strong>
+                        <span>{pedido.cliente_telefono}</span>
+                      </div>
+
+                      <select
+                        value={pedido.estado}
+                        onChange={(e) =>
+                          actualizarEstadoPedido(pedido.id, e.target.value)
+                        }
+                      >
+                        <option value="pendiente">pendiente</option>
+                        <option value="confirmado">confirmado</option>
+                        <option value="preparando">preparando</option>
+                        <option value="listo">listo</option>
+                        <option value="entregado">entregado</option>
+                        <option value="cancelado">cancelado</option>
+                      </select>
+                    </div>
+
+                    <p>{pedido.direccion_entrega}</p>
+
+                    {pedido.lat && pedido.lng && (
+                      <a
+                        className="mapLink smallMap"
+                        href={`https://www.google.com/maps?q=${pedido.lat},${pedido.lng}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Ver ubicación
+                      </a>
+                    )}
+
+                    <ul>
+                      {pedido.productos?.map((producto, index) => (
+                        <li key={index}>
+                          {producto.nombre} x{producto.cantidad} — $
+                          {Number(producto.total).toFixed(2)}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <div className="pedidoBottom">
+                      <strong>${Number(pedido.subtotal).toFixed(2)}</strong>
+                      <span>{new Date(pedido.created_at).toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="adminCard productsAdmin" id="productos">
             <div className="adminSectionHeader">
               <div>
                 <h2>Productos cargados</h2>
@@ -1024,6 +1363,13 @@ const [vista] = useState(esAdmin ? "admin" : "cliente");
                       onClick={() => alternarProductoActivo(producto.id)}
                     >
                       {producto.activo ? "Activo" : "Inactivo"}
+                    </button>
+
+                    <button
+                      className={producto.popular ? "popularState" : "secondaryState"}
+                      onClick={() => alternarProductoPopular(producto.id)}
+                    >
+                      {producto.popular ? "Popular" : "No popular"}
                     </button>
 
                     <button
